@@ -24,7 +24,7 @@ Usage is very similar to the original with a few exceptions:
         --dataset datasetname # folder inside path/to/all/datasets
         --output_dir out # output files will be written to out/datasetname
 
-When exporting it also **exports a standalone frozen graph** (with suffix graph_frz.pb) ready to be used by itself (e.g. in [ofxMSATensorFlow](https://github.com/memo/ofxMSATensorFlow)). See [this commit](https://github.com/memo/pix2pix-tensorflow/commit/9e40dd09ebb66714bc21c82edd9c78ac8b013a2c). I.e. after training, run 
+When exporting it also **exports a standalone frozen graph** (called graph_frz.pb) ready to be used by itself (e.g. in [ofxMSATensorFlow](https://github.com/memo/ofxMSATensorFlow)). See [this commit](https://github.com/memo/pix2pix-tensorflow/commit/9e40dd09ebb66714bc21c82edd9c78ac8b013a2c). I.e. after training, run 
 
     python pix2pix.py \
         --mode export \
