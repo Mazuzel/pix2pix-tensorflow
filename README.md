@@ -1,4 +1,4 @@
-This is a fork of https://github.com/affinelayer/pix2pix-tensorflow modified so the trained models can easily be used in other environments (e.g. C++, [openFrameworks](http://openframeworks.cc/), [ofxMSATensorFlow](https://github.com/memo/ofxMSATensorFlow) etc). See [here](https://github.com/memo/ofxMSATensorFlow/wiki/Loading-and-using-trained-tensorflow-models-in-openFrameworks) for motivations for these mods.
+This is a fork of https://github.com/affinelayer/pix2pix-tensorflow with modifications to enable the trained models to be used in other environments (e.g. [ofxMSATensorFlow](https://github.com/memo/ofxMSATensorFlow)). Reasons as to why these changes are nessecary are described [here](https://github.com/memo/ofxMSATensorFlow/wiki/Loading-and-using-trained-tensorflow-models-in-openFrameworks).
 
 The only **difference in architecture** (if it can be called that) are named tf.identity operators on generator inputs and outputs, to address the last issue above. See [this commit](https://github.com/memo/pix2pix-tensorflow/commit/fb99c19690554400174ebf03aecaf63ad87785c7). 
 
