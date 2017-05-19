@@ -1,3 +1,32 @@
+This is a fork of https://github.com/sherjilozair/char-rnn-tensorflow modified so the trained models can easily be used in other environments (e.g. C++, [openFrameworks](http://openframeworks.cc/), [ofxMSATensorFlow](https://github.com/memo/ofxMSATensorFlow) etc.)
+
+General problems and motivations for the mods:
+
+* The default format that trained tensorflow models are saved in are checkpoint files, which don't contain architecture information, only parameter values, so loading them alone in C++ wouldn't be enough (AFAIK there is no C++ loader for ckpt files anyway).
+* The file format which contains architecture information and can be loaded in C++ is protobuf (.pb), however saving a .pb from tensorflow saves the *untrained* model only, i.e. the trained model parameters are *not* saved in this file. There is a [utility](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/tools/freeze_graph.py) which prunes and 'freezes' graphs (replaces variables with consts of the same value), however...
+* ... when we use *loaded* graphs, we need to access ops to feed and fetch by name. Most python tensorflow examples however, build the graph in python, save references to ops in variables, then during inference they access ops to feed and fetch via those variables, so the graphs often aren't setup to be easily accessible by name. 
+
+The only difference in architecture (if it can be called that) are named tf.identity operators on generator inputs and outputs, to address the last issue above. See [this commit](https://github.com/memo/pix2pix-tensorflow/commit/fb99c19690554400174ebf03aecaf63ad87785c7). 
+
+I've also made a few tweaks to improve usability (totally personal preference). Usage is very similar to the original with a few exceptions:
+
+- input_dir is to a folder containing datasets
+- an additional dataset name is required (which dataset to load from input_dir)
+- output is also send to output_dir/dataset folder
+- when testing or exporting, if no checkpoint is given, it defaults to output_dir/dataset
+- when exporting it also exports a standalone frozen graph (with suffix export_frz.pb) ready to be used as is.
+
+ E.g. to train the command line arguments are:
+
+    python pix2pix.py \
+        --mode train \
+        --input_dir path/to/all/datasets
+        --dataset datasetname # folder inside path/to/all/datasets
+        --output_dir out # output files will be written to out/datasetname
+
+
+---
+
 # pix2pix-tensorflow
 
 Based on [pix2pix](https://phillipi.github.io/pix2pix/) by Isola et al.
