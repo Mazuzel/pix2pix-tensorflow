@@ -640,13 +640,22 @@ def main():
             print("loading model from checkpoint")
             checkpoint = tf.train.latest_checkpoint(a.checkpoint)
             restore_saver.restore(sess, checkpoint)
+
             print("exporting model")
-            export_saver.export_meta_graph(filename=os.path.join(a.output_dir, "export.meta"))
-            export_saver.save(sess, os.path.join(a.output_dir, "export"), write_meta_graph=False)
+            filename = os.path.split(checkpoint)[1]
+            export_path = os.path.join(a.output_dir, 'export')
+            if not os.path.exists(export_path):
+                os.makedirs(export_path)
+
+            export_saver.export_meta_graph(filename=os.path.join(export_path, filename + "_export.meta"))
+            export_saver.save(sess, os.path.join(export_path, filename + "_export"), write_meta_graph=False)
 
             # write frozen graph
+            export_path = os.path.join(a.output_dir, 'export_frz')
+            if not os.path.exists(export_path):
+                os.makedirs(export_path)
             graph_frz = tf.graph_util.convert_variables_to_constants(sess, sess.graph_def, ['generator/generator_outputs'])
-            tf.train.write_graph(graph_frz, a.output_dir, 'graph_frz.pb', as_text=False)
+            tf.train.write_graph(graph_frz, export_path, filename+'_frz.pb', as_text=False)
 
         return
 
@@ -733,7 +742,7 @@ def main():
     with tf.name_scope("parameter_count"):
         parameter_count = tf.reduce_sum([tf.reduce_prod(tf.shape(v)) for v in tf.trainable_variables()])
 
-    saver = tf.train.Saver(max_to_keep=5)
+    saver = tf.train.Saver(max_to_keep=200)
 
     logdir = a.output_dir if (a.trace_freq > 0 or a.summary_freq > 0) else None
     sv = tf.train.Supervisor(logdir=logdir, save_summaries_secs=0, saver=None)
