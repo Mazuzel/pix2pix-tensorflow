@@ -13,9 +13,9 @@ import collections
 import math
 import time
 
-DELAY_TO_AVOID_OVERHEAT_S = 0.0
-SECURITY_BIG_DELAY_S = 15
-SECURITY_BIG_DELAY_CNT = 160
+DELAY_TO_AVOID_OVERHEAT_S = 0.01
+SECURITY_BIG_DELAY_S = 8
+SECURITY_BIG_DELAY_CNT = 180
 
 
 parser = argparse.ArgumentParser()
@@ -311,15 +311,19 @@ def load_examples():
     seed = random.randint(0, 2**31 - 1)
     scale = random.randint(CROP_SIZE, a.scale_size)
     angle = random.randint(-8,8)*random.randint(0,10)/10.0
-    def transform(image):
+    def transform(image, isDepthImage):
         r = image
         if a.flip:
             r = tf.image.random_flip_left_right(r, seed=seed)
 
+        # if this is the depth image, we will add noise and change luminosity randomly
+        if isDepthImage:
+            r = tf.image.random_brightness(r, 0.1, seed=seed)
+
         # random scale between 256 and defined scale
         #scale = tf.cast(tf.floor(tf.random_uniform([2], CROP_SIZE, a.scale_size, seed=seed)), dtype=tf.int32)
         #scale = scale[0]
-        
+
         # area produces a nice downscaling, but does nearest neighbor for upscaling
         # assume we're going to be doing downscaling here
         r = tf.contrib.image.rotate(r, angle * 3.14 / 180, interpolation='BILINEAR')
@@ -334,10 +338,10 @@ def load_examples():
         return r
 
     with tf.name_scope("input_images"):
-        input_images = transform(inputs)
+        input_images = transform(inputs, True)
 
     with tf.name_scope("target_images"):
-        target_images = transform(targets)
+        target_images = transform(targets, False)
 
     paths_batch, inputs_batch, targets_batch = tf.train.batch([paths, input_images, target_images], batch_size=a.batch_size)
     steps_per_epoch = int(math.ceil(len(input_paths) / a.batch_size))
