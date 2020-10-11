@@ -13,9 +13,6 @@ import collections
 import math
 import time
 
-DELAY_TO_AVOID_OVERHEAT_S = 0.0
-SECURITY_BIG_DELAY_S = 15
-SECURITY_BIG_DELAY_CNT = 160
 
 
 parser = argparse.ArgumentParser()
@@ -310,16 +307,20 @@ def load_examples():
     # input and output images
     seed = random.randint(0, 2**31 - 1)
     scale = random.randint(CROP_SIZE, a.scale_size)
-    angle = random.randint(-8,8)*random.randint(0,10)/10.0
-    def transform(image):
+    angle = random.randint(-5,5)*random.randint(0,10)/10.0
+    def transform(image, isDepthImage):
         r = image
         if a.flip:
             r = tf.image.random_flip_left_right(r, seed=seed)
 
+        # if this is the depth image, we will add noise and change luminosity randomly
+        if isDepthImage:
+            r = tf.image.random_brightness(r, 0.1, seed=seed)
+
         # random scale between 256 and defined scale
         #scale = tf.cast(tf.floor(tf.random_uniform([2], CROP_SIZE, a.scale_size, seed=seed)), dtype=tf.int32)
         #scale = scale[0]
-        
+
         # area produces a nice downscaling, but does nearest neighbor for upscaling
         # assume we're going to be doing downscaling here
         r = tf.contrib.image.rotate(r, angle * 3.14 / 180, interpolation='BILINEAR')
@@ -334,10 +335,10 @@ def load_examples():
         return r
 
     with tf.name_scope("input_images"):
-        input_images = transform(inputs)
+        input_images = transform(inputs, True)
 
     with tf.name_scope("target_images"):
-        target_images = transform(targets)
+        target_images = transform(targets, False)
 
     paths_batch, inputs_batch, targets_batch = tf.train.batch([paths, input_images, target_images], batch_size=a.batch_size)
     steps_per_epoch = int(math.ceil(len(input_paths) / a.batch_size))
@@ -792,12 +793,6 @@ def main():
             start = time.time()
 
             for step in range(max_steps):
-                time.sleep(DELAY_TO_AVOID_OVERHEAT_S)
-                CNT+=1
-                if CNT > SECURITY_BIG_DELAY_CNT:
-                    print("sleeping to avoid overheating")
-                    time.sleep(SECURITY_BIG_DELAY_S)
-                    CNT = 0
 
                 def should(freq):
                     return freq > 0 and ((step + 1) % freq == 0 or step == max_steps - 1)
@@ -827,7 +822,6 @@ def main():
                 results = sess.run(fetches, options=options, run_metadata=run_metadata)
 
                 if should(a.summary_freq):
-                    print("recording summary")
                     sv.summary_writer.add_summary(results["summary"], results["global_step"])
 
                 if should(a.display_freq):
@@ -845,14 +839,11 @@ def main():
                     train_step = (results["global_step"] - 1) % examples.steps_per_epoch + 1
                     rate = (step + 1) * a.batch_size / (time.time() - start)
                     remaining = (max_steps - step) * a.batch_size / rate
-                    print("progress  epoch %d  step %d  image/sec %0.1f  remaining %dm" % (train_epoch, train_step, rate, remaining / 60))
-                    print("discrim_loss", results["discrim_loss"])
-                    print("gen_loss_GAN", results["gen_loss_GAN"])
-                    print("gen_loss_L1", results["gen_loss_L1"])
+                    print("> epoch %d  step %d  img/sec %0.1f  remain %dm  disc_loss %0.3f  gen_loss_GAN %0.3f  gen_loss_L1 %0.3f" % (train_epoch, train_step, rate, remaining / 60, results["discrim_loss"], results["gen_loss_GAN"], results["gen_loss_L1"]))
 
                 if should(a.save_freq):
-                    print("saving model")
                     saver.save(sess, os.path.join(a.output_dir, "model"), global_step=sv.global_step)
+                    print("ooo---! model saved !---ooo")
 
                 if sv.should_stop():
                     break
